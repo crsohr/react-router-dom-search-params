@@ -17,6 +17,10 @@
   "author": {
     "name": "Christopher Allène"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crsohr/react-router-dom-search-params"
+  },
   "license": "ISC",
   "peerDependencies": {
     "react-router-dom": "5.x",
