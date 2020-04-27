@@ -5,6 +5,8 @@ function getKeepParams(search, keepParams) {
   return result.toString();
 }
 
+export default null;
+
 export function getFinalURL({ location, keep, to = location.pathname, params = {} }) {
   const toUrl = new URL(`https://localhost${to}`); // dummy host to allow parsing
   const { pathname: toPathname, search: toSearch } = toUrl;
@@ -20,8 +22,6 @@ export function getFinalURL({ location, keep, to = location.pathname, params = {
       // else, keep only the parameters to keep accross pages
       getKeepParams(location.search, keep)
     )
-    // if the `to` has some search, use it
-    //toSearch.substr(1) + '&' 
   );
   Array.from(toParams.entries()).forEach(([param,value]) => query.set(param, value));
   Object.keys(params).forEach(param => {

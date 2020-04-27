@@ -105,6 +105,14 @@ provide, and the params that should be kept (as defined in `ParamProvider`):
 return <ParamLink to="/browse" params={{shop: 'apples'}}>Browse Apples</ParamLink>;
 ```
 
+## Quality
+
+This package is tested with `jest` and has full 100% coverage.
+It's a small package so it shouldn't break.
+
+If you want to submit a PR, please make sure that it still passes ESLint (`npm run lint`)
+and that all tests passes (`npm run test`).
+
 ## Issues
 
 Please report an issue on the project if you have any questions or comments.

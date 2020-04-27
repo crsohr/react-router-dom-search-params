@@ -1,17 +1,17 @@
-import { useContext } from 'react';
-import { useLocation, useHistory } from 'react-router-dom';
-import { ParamContext } from './ParamProvider';
-import { getFinalURL } from './utils';
-import { parseValue, encodeValues } from './values';
+import { useContext } from "react";
+import { useLocation, useHistory } from "react-router-dom";
+import { ParamContext } from "./ParamProvider";
+import { getFinalURL } from "./utils";
+import { parseValue, encodeValues } from "./values";
 
 /**
- * Returns a function that can further be curried with an URL and will return 
+ * Returns a function that can further be curried with an URL and will return
  * another URL keeping all the parameters defined in the `ParamContext`.
  *
  * @method useURL
- * @return {Function} a function: `(to, params) => String`, returning an URL for which
+ * @return {Function} a function: `(to, params) => String`, returning an URL for which
  * the added params have been added
- **/
+ */
 export function useURL() {
   const { keep } = useContext(ParamContext);
   const location = useLocation();
@@ -38,40 +38,43 @@ export function useURL() {
  * to wrap a component with values and setters for your search params.
  *
  * @method useSearchParams
- * @return {Object} an instance with a method `param(name, defaultValue)`
- **/
+ * @return {Object} an instance with a method `param(name, defaultValue)`
+ */
 export function useSearchParams() {
   const location = useLocation();
   const history = useHistory();
   const context = useContext(ParamContext);
-  const { cache, lastPush, minimumDelay } = context;
+  const { cache, minimumDelay } = context;
 
-  const cached = cache.filter(x => x.location === location);
-  if(cached.length) {
+  const cached = cache.filter((x) => x.location === location);
+  if (cached.length) {
     return cached[0].result;
   }
 
   const params = new URLSearchParams(location.search);
   let timer;
 
-  const push = values => {
+  const push = (values) => {
+    const { lastPush } = context;
     let changed = false;
     Object.entries(values).forEach(([param, value]) => {
-      if(value === null) {
+      if (value === null) {
         changed = true;
         params.delete(param);
         changed = true;
-      } else {
-        if(params.get(param) !== value) {
-          changed = true;
-          params.set(param, value);
-        }
+      } else if (params.get(param) !== value) {
+        changed = true;
+        params.set(param, value);
       }
     });
-    if(!changed) { return }
-    if(timer) { return; }
-    let now = Date.now();
-    let delaySinceLastPush = now - lastPush;
+    if (!changed) {
+      return;
+    }
+    if (timer) {
+      return;
+    }
+    const now = Date.now();
+    const delaySinceLastPush = now - lastPush;
     context.lastPush = now;
 
     const doit = () => {
@@ -79,38 +82,49 @@ export function useSearchParams() {
       const paramsString = params.toString();
       const url = [
         location.pathname,
-        paramsString? `?${paramsString}`: '',
-        location.hash || '',
-      ].join('');
+        paramsString ? `?${paramsString}` : "",
+        location.hash || "",
+      ].join("");
       history.push(url);
     };
-    if(minimumDelay < 0) {
+    if (minimumDelay < 0) {
       doit();
     } else {
-      timer = setTimeout(doit, delaySinceLastPush > minimumDelay? 0: minimumDelay);
+      timer = setTimeout(
+        doit,
+        delaySinceLastPush > minimumDelay ? 0 : minimumDelay
+      );
     }
   };
 
   const useParams = {};
   const param = (name, defaultValue) => {
-    if(useParams[name]) {
+    if (useParams[name]) {
       return useParams[name];
     }
 
     const value = parseValue(params, name, defaultValue);
-    const setter = value => {
-      if(value === defaultValue) {
+    const setter = (newValue) => {
+      if (newValue === defaultValue) {
         push({ [name]: null });
       } else {
         push({ [name]: null });
-        encodeValues(params, name, value, defaultValue).forEach(([ encodedName, encodedValue ]) => push({ [encodedName]: encodedValue }));
+        encodeValues(
+          params,
+          name,
+          newValue,
+          defaultValue
+        ).forEach(([encodedName, encodedValue]) =>
+          push({ [encodedName]: encodedValue })
+        );
       }
     };
-    return useParams[name] = [ value, setter ];
+    useParams[name] = [value, setter];
+    return useParams[name];
   };
 
   const result = {
-    get: param => params.get(param),
+    get: (paramName) => params.get(paramName),
     entries: () => params.entries(),
     push,
     param,
@@ -118,4 +132,3 @@ export function useSearchParams() {
   cache.push({ location, result });
   return result;
 }
-

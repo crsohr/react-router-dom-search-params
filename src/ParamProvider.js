@@ -1,4 +1,5 @@
-import React, { createContext } from 'react';
+import React, { createContext } from "react";
+import PropTypes from 'prop-types';
 
 export const ParamContext = createContext();
 
@@ -10,7 +11,7 @@ export const ParamContext = createContext();
  *
  * @const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS
  * @type {Number}
- **/
+ */
 const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS = 300;
 
 /**
@@ -20,18 +21,32 @@ const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS = 300;
  * @method ParamProvider
  * @param {Array} keep an optional array of the parameters that should be
  * be kept when navigating from one page to another
- **/
-export default function ParamProvider ({ keep = [], minimumDelay = MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS, children }) {
+ */
+export default function ParamProvider({
+  keep,
+  minimumDelay,
+  children,
+}) {
   const value = {
-    keep: keep,
+    keep,
     lastPush: 0,
     cache: [],
     minimumDelay,
   };
 
   return (
-    <ParamContext.Provider value={value}>
-      {children}
-    </ParamContext.Provider>
+    <ParamContext.Provider value={value}>{children}</ParamContext.Provider>
   );
 }
+
+ParamProvider.propTypes = {
+  keep: PropTypes.arrayOf(PropTypes.string),
+  minimumDelay: PropTypes.number,
+  children: PropTypes.node,
+};
+
+ParamProvider.defaultProps = {
+  keep: [],
+  minimumDelay: MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS,
+  children: null,
+};
