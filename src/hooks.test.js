@@ -165,6 +165,27 @@ describe("useSearchParams", () => {
     expect(searchParams.param("key5", true)[0]).toBe(true);
   });
 
+  test("return the same setter even after a location change", () => {
+    let searchParams;
+    const locationRef = {};
+    act(() => {
+      const registerSearchParams = (x) => {
+        searchParams = x;
+      };
+      render(
+        <Wrapper locationRef={locationRef} url="/?a=value">
+          <TestUseSearchParams registerSearchParams={registerSearchParams} />
+        </Wrapper>,
+        container
+      );
+    });
+
+    const [, setA1] = searchParams.param("a");
+    setA1("b");
+    const [, setA2] = searchParams.param("a");
+    expect(setA1===setA2).toBe(true);
+  });
+
   test("handle string value", () => {
     let searchParams;
     const locationRef = {};

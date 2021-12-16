@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useMemo, useRef, useCallback } from "react";
 import { useLocation, useHistory } from "react-router-dom";
 import { ParamContext } from "./ParamProvider";
 import { getFinalURL } from "./utils";
@@ -18,6 +18,72 @@ export function useURL() {
   return (to, params) => {
     return getFinalURL({ location, keep, to, params });
   };
+}
+
+/**
+ * Returns a function that pushes param change and commit the location after a specified
+ * amount of time has passed.
+ *
+ * @method usePush
+ * @private
+ */
+function usePush() {
+  const location = useLocation();
+  const history = useHistory();
+  const context = useContext(ParamContext);
+  const { minimumDelay } = context;
+  const paramsRef = useRef(new URLSearchParams(location.search));
+  const locationRef = useRef();
+  useMemo(() => {
+    locationRef.current = location;
+  }, [location]);
+  return useCallback((values) => {
+    const params = paramsRef.current;
+    let timer;
+    const { lastPush } = context;
+    let changed = false;
+    Object.entries(values).forEach(([param, value]) => {
+      if (value === null) {
+        changed = true;
+        params.delete(param);
+        changed = true;
+      } else if (params.get(param) !== value) {
+        changed = true;
+        params.set(param, value);
+      }
+    });
+    if (!changed) {
+      return;
+    }
+    /*
+     * FIXME why this was necessary before the rewrite?
+    if (timer) {
+      return;
+    }
+    */
+    const now = Date.now();
+    const delaySinceLastPush = now - lastPush;
+    context.lastPush = now;
+
+    const doit = () => {
+      timer = null;
+      const paramsString = params.toString();
+      const url = [
+        locationRef.current.pathname,
+        paramsString ? `?${paramsString}` : "",
+        locationRef.current.hash || "",
+      ].join("");
+      history.push(url);
+    };
+    if (minimumDelay < 0) {
+      doit();
+    } else {
+      timer = setTimeout(
+        doit,
+        delaySinceLastPush > minimumDelay ? 0 : minimumDelay
+      );
+    }
+  }, [context, history, locationRef, minimumDelay, paramsRef]);
 }
 
 /**
@@ -42,60 +108,21 @@ export function useURL() {
  */
 export function useSearchParams() {
   const location = useLocation();
-  const history = useHistory();
   const context = useContext(ParamContext);
-  const { cache, minimumDelay } = context;
+  const { cache, setters } = context;
+
+  const paramsRef = useRef();
+  useMemo(() => {
+  paramsRef.current = new URLSearchParams(location.search);
+  }, [location.search]);
+
+  const params = new URLSearchParams(location.search);
+  const push = usePush();
 
   const cached = cache.filter((x) => x.location === location);
   if (cached.length) {
     return cached[0].result;
   }
-
-  const params = new URLSearchParams(location.search);
-  let timer;
-
-  const push = (values) => {
-    const { lastPush } = context;
-    let changed = false;
-    Object.entries(values).forEach(([param, value]) => {
-      if (value === null) {
-        changed = true;
-        params.delete(param);
-        changed = true;
-      } else if (params.get(param) !== value) {
-        changed = true;
-        params.set(param, value);
-      }
-    });
-    if (!changed) {
-      return;
-    }
-    if (timer) {
-      return;
-    }
-    const now = Date.now();
-    const delaySinceLastPush = now - lastPush;
-    context.lastPush = now;
-
-    const doit = () => {
-      timer = null;
-      const paramsString = params.toString();
-      const url = [
-        location.pathname,
-        paramsString ? `?${paramsString}` : "",
-        location.hash || "",
-      ].join("");
-      history.push(url);
-    };
-    if (minimumDelay < 0) {
-      doit();
-    } else {
-      timer = setTimeout(
-        doit,
-        delaySinceLastPush > minimumDelay ? 0 : minimumDelay
-      );
-    }
-  };
 
   const useParams = {};
   const param = (name, defaultValue) => {
@@ -104,21 +131,25 @@ export function useSearchParams() {
     }
 
     const value = parseValue(params, name, defaultValue);
-    const setter = (newValue) => {
-      if (newValue === defaultValue) {
-        push({ [name]: null });
-      } else {
-        push({ [name]: null });
-        encodeValues(
-          params,
-          name,
-          newValue,
-          defaultValue
-        ).forEach(([encodedName, encodedValue]) =>
-          push({ [encodedName]: encodedValue })
-        );
-      }
-    };
+    let setter = setters.find(({ name: setterName, defaultValue: setterDefaultValue }) => name === setterName && defaultValue === setterDefaultValue)?.setter;
+    if(!setter) {
+      setter = (newValue) => {
+        if (newValue === defaultValue) {
+          push({ [name]: null });
+        } else {
+          push({ [name]: null });
+          encodeValues(
+            paramsRef.current,
+            name,
+            newValue,
+            defaultValue
+          ).forEach(([encodedName, encodedValue]) =>
+            push({ [encodedName]: encodedValue })
+          );
+        }
+      };
+      setters.push({ setter, name, defaultValue });
+    }
     useParams[name] = [value, setter];
     return useParams[name];
   };

@@ -45,6 +45,7 @@ describe("ParamProvider", () => {
       keep: [],
       lastPush: 0,
       minimumDelay: 300,
+      setters: [],
     });
   });
 
@@ -67,6 +68,7 @@ describe("ParamProvider", () => {
       keep: ["a", "b"],
       lastPush: 0,
       minimumDelay: 42,
+      setters: [],
     });
   });
 });
