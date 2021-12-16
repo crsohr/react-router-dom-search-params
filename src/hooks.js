@@ -37,9 +37,9 @@ function usePush() {
   useMemo(() => {
     locationRef.current = location;
   }, [location]);
+  const timerRef = useRef();
   return useCallback((values) => {
     const params = paramsRef.current;
-    let timer;
     const { lastPush } = context;
     let changed = false;
     Object.entries(values).forEach(([param, value]) => {
@@ -55,18 +55,15 @@ function usePush() {
     if (!changed) {
       return;
     }
-    /*
-     * FIXME why this was necessary before the rewrite?
-    if (timer) {
+    if (timerRef.current) {
       return;
     }
-    */
     const now = Date.now();
     const delaySinceLastPush = now - lastPush;
     context.lastPush = now;
 
     const doit = () => {
-      timer = null;
+      timerRef.current = null;
       const paramsString = params.toString();
       const url = [
         locationRef.current.pathname,
@@ -78,7 +75,7 @@ function usePush() {
     if (minimumDelay < 0) {
       doit();
     } else {
-      timer = setTimeout(
+      timerRef.current = setTimeout(
         doit,
         delaySinceLastPush > minimumDelay ? 0 : minimumDelay
       );
