@@ -7,6 +7,8 @@ module.exports = {
     'plugin:react/recommended',
     'airbnb',
     'plugin:jest/recommended',
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
     'prettier',
   ],
   globals: {
