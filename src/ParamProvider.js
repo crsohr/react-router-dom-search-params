@@ -31,6 +31,7 @@ export default function ParamProvider({
     keep,
     lastPush: 0,
     cache: [],
+    setters: [],
     minimumDelay,
   };
 
