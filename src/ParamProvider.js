@@ -1,5 +1,4 @@
-import React, { createContext, useRef, useMemo, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { createContext, useMemo } from "react";
 import PropTypes from 'prop-types';
 
 export const ParamContext = createContext();
@@ -23,54 +22,20 @@ const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS = 300;
  * @param {Array} keep an optional array of the parameters that should be
  * be kept when navigating from one page to another
  */
-function useLocationNoThrow() {
-  try{
-    // useLocation may throw inside MemoryRouter
-    // (We do not really care)
-    return useLocation();
-  }catch(e) {
-    return {};
-  }
-}
 export default function ParamProvider({
   keep,
   minimumDelay,
   children,
 }) {
-  const location = useLocationNoThrow();
-  const locationRef = useRef();
-  const [localLocation, setLocalLocation] = useState({...location});
-  useEffect(() => {
-    // nested react-router-dom router may prevent us from seing location change
-    const handler =  () => {
-      setLocalLocation({...window.location});
-    };
-    handler();
-    window.addEventListener("popstate", handler);
-    const oldHistoryPushState = window.history.pushState;
-    window.history.pushState = new Proxy(window.history.pushState, {
-      apply: (target, thisArg, argArray) => {
-        const result = target.apply(thisArg, argArray);
-        setLocalLocation({...window.location});
-        return result;
-      },
-    });
-    return () => {
-      window.history.pushState = oldHistoryPushState;
-      window.removeEventListener("popstate", handler);
-    };
-  }, []);
-  useMemo(() => {
-    locationRef.current = {...localLocation};
-  }, [localLocation]);
+  const setters = useMemo(() => [], []);
+  const cache = useMemo(() => [], []);
   const value = useMemo(() => ({
     keep,
     lastPush: 0,
-    cache: [],
-    setters: [],
+    cache,
+    setters,
     minimumDelay,
-    locationRef,
-  }), [keep, minimumDelay, locationRef]);
+  }), [cache, setters, keep, minimumDelay]);
 
   return (
     <ParamContext.Provider value={value}>{children}</ParamContext.Provider>

@@ -18,13 +18,9 @@ afterEach(() => {
   container = null;
 });
 
-function TestContext({ registerContext, registerHistory }) {
+function TestContext({ registerContext }) {
   const context = useContext(ParamContext);
   registerContext(context);
-  if(registerHistory) {
-    registerHistory(window.history);
-  }
-
   return null;
 }
 
@@ -49,7 +45,6 @@ describe("ParamProvider", () => {
       lastPush: 0,
       minimumDelay: 300,
       setters: [],
-      locationRef: { current: {}},
     });
   });
 
@@ -73,29 +68,6 @@ describe("ParamProvider", () => {
       lastPush: 0,
       minimumDelay: 42,
       setters: [],
-      locationRef: { current: {}},
     });
-  });
-
-  test("reloads location on direct pushState calls", () => {
-    let context;
-    let history;
-    act(() => {
-      const registerContext = (x) => {
-        context = x;
-      };
-      const registerHistory = (x) => {
-        history = x;
-      }
-      render(
-        <ParamProvider keep={["a", "b"]} minimumDelay={42}>
-          <TestContext registerContext={registerContext} registerHistory={registerHistory} />
-        </ParamProvider>,
-        container
-      );
-    });
-
-    history.pushState({}, null, "/forced-location");
-    expect(context.locationRef.current.pathname).toBe("/forced-location");
   });
 });
