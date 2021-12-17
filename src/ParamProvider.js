@@ -1,4 +1,5 @@
-import React, { createContext } from "react";
+import React, { createContext, useRef, useMemo, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import PropTypes from 'prop-types';
 
 export const ParamContext = createContext();
@@ -22,18 +23,55 @@ const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS = 300;
  * @param {Array} keep an optional array of the parameters that should be
  * be kept when navigating from one page to another
  */
+function useLocationNoThrow() {
+  try{
+    return useLocation();
+  }catch(e) {
+    return {};
+  }
+}
 export default function ParamProvider({
   keep,
   minimumDelay,
   children,
 }) {
-  const value = {
+  const location = useLocationNoThrow();
+  const locationRef = useRef();
+  const [localLocation, setLocalLocation] = useState({...location});
+  useEffect(() => {
+    // nested react-router-dom router may prevent us from seing location change
+    const handler =  () => {
+      console.log("DEBUG POP STATE", window.location);
+      setLocalLocation({...window.location});
+    };
+    handler();
+    window.addEventListener("popstate", handler);
+    const oldHistoryPushState = window.history.pushState;
+    window.history.pushState = new Proxy(window.history.pushState, {
+      apply: (target, thisArg, argArray) => {
+        const result = target.apply(thisArg, argArray);
+        console.log("DEBUG PUSHSTATE", window.location);
+        setLocalLocation({...window.location});
+        return result;
+      },
+    });
+    return () => {
+      window.history.pushState = oldHistoryPushState;
+      window.removeEventListener("popstate", handler);
+    };
+  }, []);
+  useMemo(() => {
+    console.log("DEBUG CONTEXT LOCATION",  localLocation);
+    locationRef.current = {...localLocation};
+  }, [localLocation]);
+  const value = useMemo(() => ({
     keep,
     lastPush: 0,
     cache: [],
     setters: [],
     minimumDelay,
-  };
+    locationRef,
+  }), [keep, minimumDelay, locationRef]);
 
   return (
     <ParamContext.Provider value={value}>{children}</ParamContext.Provider>

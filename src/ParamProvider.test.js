@@ -18,9 +18,12 @@ afterEach(() => {
   container = null;
 });
 
-function TestContext({ registerContext }) {
+function TestContext({ registerContext, registerHistory }) {
   const context = useContext(ParamContext);
   registerContext(context);
+  if(registerHistory) {
+    registerHistory(window.history);
+  }
 
   return null;
 }
@@ -40,12 +43,13 @@ describe("ParamProvider", () => {
       );
     });
 
-    expect(context).toStrictEqual({
+    expect(context).toMatchObject({
       cache: [],
       keep: [],
       lastPush: 0,
       minimumDelay: 300,
       setters: [],
+      locationRef: { current: {}},
     });
   });
 
@@ -63,12 +67,35 @@ describe("ParamProvider", () => {
       );
     });
 
-    expect(context).toStrictEqual({
+    expect(context).toMatchObject({
       cache: [],
       keep: ["a", "b"],
       lastPush: 0,
       minimumDelay: 42,
       setters: [],
+      locationRef: { current: {}},
     });
+  });
+
+  test("reloads location on direct pushState calls", () => {
+    let context;
+    let history;
+    act(() => {
+      const registerContext = (x) => {
+        context = x;
+      };
+      const registerHistory = (x) => {
+        history = x;
+      }
+      render(
+        <ParamProvider keep={["a", "b"]} minimumDelay={42}>
+          <TestContext registerContext={registerContext} registerHistory={registerHistory} />
+        </ParamProvider>,
+        container
+      );
+    });
+
+    history.pushState({}, null, "/forced-location");
+    expect(context.locationRef.current.pathname).toBe("/forced-location");
   });
 });
