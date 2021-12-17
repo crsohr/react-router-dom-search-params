@@ -27,13 +27,14 @@ export default function ParamProvider({
   minimumDelay,
   children,
 }) {
+  const setters = useMemo(() => [], []);
   const value = useMemo(() => ({
     keep,
     lastPush: 0,
     cache: [],
-    setters: [],
+    setters,
     minimumDelay,
-  }), [keep, minimumDelay]);
+  }), [setters, keep, minimumDelay]);
 
   return (
     <ParamContext.Provider value={value}>{children}</ParamContext.Provider>

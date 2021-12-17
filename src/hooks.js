@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useCallback } from "react";
+import { useContext, useMemo, useRef, useCallback, useEffect } from "react";
 import { useLocation, useHistory } from "react-router-dom";
 import { ParamContext } from "./ParamProvider";
 import { getFinalURL } from "./utils";
@@ -30,7 +30,12 @@ export function useURL() {
 function usePush() {
   const history = useHistory();
   const context = useContext(ParamContext);
-  const { minimumDelay, locationRef } = context;
+  const { minimumDelay } = context;
+  const locationRef = useRef();
+  const location = useLocation();
+  useMemo(() => {
+    locationRef.current = location;
+  }, [location]);
   const paramsRef = useRef(new URLSearchParams(locationRef.current.search));
   const timerRef = useRef();
   return useCallback((values) => {
@@ -108,6 +113,10 @@ export function useSearchParams() {
   }, [location.search]);
 
   const push = usePush();
+  const pushRef = useRef();
+  useMemo(() => {
+    pushRef.current = push;
+  }, [push]);
 
   const cached = cache.filter((x) => x.location === location);
   if (cached.length) {
@@ -122,22 +131,25 @@ export function useSearchParams() {
 
     const value = parseValue(paramsRef.current, name, defaultValue);
     let setter = setters.find(({ name: setterName, defaultValue: setterDefaultValue }) => name === setterName && defaultValue === setterDefaultValue)?.setter;
-    if(!setter) {
-      setter = (newValue) => {
+    if(setter) {
+      setter.pushRef = pushRef;
+    } else {
+      setter = function setterFunction (newValue) {
         if (newValue === defaultValue) {
-          push({ [name]: null });
+          setterFunction.pushRef.current({ [name]: null });
         } else {
-          push({ [name]: null });
+          setterFunction.pushRef.current({ [name]: null });
           encodeValues(
             paramsRef.current,
             name,
             newValue,
             defaultValue
           ).forEach(([encodedName, encodedValue]) =>
-            push({ [encodedName]: encodedValue })
+            setterFunction.pushRef.current({ [encodedName]: encodedValue })
           );
         }
       };
+      setter.pushRef = pushRef;
       setters.push({ setter, name, defaultValue });
     }
     useParams[name] = [value, setter];
