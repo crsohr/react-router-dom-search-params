@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useCallback } from "react";
+import { useContext, useMemo, useRef, useCallback } from "react";
 import { useLocation, useHistory } from "react-router-dom";
 import { ParamContext } from "./ParamProvider";
 import { getFinalURL } from "./utils";
@@ -28,26 +28,12 @@ export function useURL() {
  * @private
  */
 function usePush() {
-  //const location = useLocation();
   const history = useHistory();
   const context = useContext(ParamContext);
   const { minimumDelay, locationRef } = context;
   const paramsRef = useRef(new URLSearchParams(locationRef.current.search));
-  //const locationRef = useRef();
-  const fiber = useMemo(() => Math.random());
-  /*useMemo(() => {
-    console.log("DEBUG LOCATION", fiber,  location);
-    locationRef.current = location;
-  }, [location]);*/
   const timerRef = useRef();
   return useCallback((values) => {
-    console.log("DEBUG PUSH", fiber, locationRef.current, values);
-    /*
-    if(values?.id_id_app === null) {
-      new Function("debugger")();
-    }
-    */
-    // const params = paramsRef.current;
     const { lastPush } = context;
     let changed = false;
     Object.entries(values).forEach(([param, value]) => {
@@ -64,7 +50,6 @@ function usePush() {
       return;
     }
     if (timerRef.current) {
-      //console.log("DEBUG PUSH found timerRef.current");
       return;
     }
     const now = Date.now();
@@ -72,18 +57,13 @@ function usePush() {
     context.lastPush = now;
 
     const doit = () => {
-      //console.log(`DEBUG PUSH clear timer ${timerRef.current}`);
       timerRef.current = null;
       const paramsString = paramsRef.current.toString();
-      console.log(`DEBUG PUSHING ${locationRef.current.pathname}/${paramsString}`);
       const url = [
         locationRef.current.pathname,
         paramsString ? `?${paramsString}` : "",
         locationRef.current.hash || "",
       ].join("");
-      const newUrl = `${locationRef.current.protocol}${locationRef.current.host}${url}`;
-      console.log("DEBUG URL", url);
-      //locationRef.current = new URL(url, window.location);
       history.push(url);
     };
     if (minimumDelay < 0) {
@@ -93,7 +73,6 @@ function usePush() {
         doit,
         delaySinceLastPush > minimumDelay ? 0 : minimumDelay
       );
-      //console.log(`DEBUG PUSH new timer ${timerRef.current}`);
     }
   }, [context, history, locationRef, minimumDelay, paramsRef]);
 }
@@ -128,7 +107,6 @@ export function useSearchParams() {
     paramsRef.current = new URLSearchParams(location.search);
   }, [location.search]);
 
-  //const params = new URLSearchParams(location.search);
   const push = usePush();
 
   const cached = cache.filter((x) => x.location === location);
@@ -143,7 +121,6 @@ export function useSearchParams() {
     }
 
     const value = parseValue(paramsRef.current, name, defaultValue);
-    console.log("DEBUG GET", name, value);
     let setter = setters.find(({ name: setterName, defaultValue: setterDefaultValue }) => name === setterName && defaultValue === setterDefaultValue)?.setter;
     if(!setter) {
       setter = (newValue) => {

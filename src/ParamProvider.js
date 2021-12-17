@@ -41,7 +41,6 @@ export default function ParamProvider({
   useEffect(() => {
     // nested react-router-dom router may prevent us from seing location change
     const handler =  () => {
-      console.log("DEBUG POP STATE", window.location);
       setLocalLocation({...window.location});
     };
     handler();
@@ -50,7 +49,6 @@ export default function ParamProvider({
     window.history.pushState = new Proxy(window.history.pushState, {
       apply: (target, thisArg, argArray) => {
         const result = target.apply(thisArg, argArray);
-        console.log("DEBUG PUSHSTATE", window.location);
         setLocalLocation({...window.location});
         return result;
       },
@@ -61,7 +59,6 @@ export default function ParamProvider({
     };
   }, []);
   useMemo(() => {
-    console.log("DEBUG CONTEXT LOCATION",  localLocation);
     locationRef.current = {...localLocation};
   }, [localLocation]);
   const value = useMemo(() => ({
