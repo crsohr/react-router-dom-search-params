@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useCallback } from "react";
+import { useContext, useMemo, useRef, useCallback } from "react";
 import { useLocation, useHistory } from "react-router-dom";
 import { ParamContext } from "./ParamProvider";
 import { getFinalURL } from "./utils";
@@ -28,28 +28,22 @@ export function useURL() {
  * @private
  */
 function usePush() {
-  const location = useLocation();
   const history = useHistory();
   const context = useContext(ParamContext);
-  const { minimumDelay } = context;
-  const paramsRef = useRef(new URLSearchParams(location.search));
-  const locationRef = useRef();
-  useMemo(() => {
-    locationRef.current = location;
-  }, [location]);
+  const { minimumDelay, locationRef } = context;
+  const paramsRef = useRef(new URLSearchParams(locationRef.current.search));
   const timerRef = useRef();
   return useCallback((values) => {
-    const params = paramsRef.current;
     const { lastPush } = context;
     let changed = false;
     Object.entries(values).forEach(([param, value]) => {
       if (value === null) {
         changed = true;
-        params.delete(param);
+        paramsRef.current.delete(param);
         changed = true;
-      } else if (params.get(param) !== value) {
+      } else if (paramsRef.current.get(param) !== value) {
         changed = true;
-        params.set(param, value);
+        paramsRef.current.set(param, value);
       }
     });
     if (!changed) {
@@ -64,7 +58,7 @@ function usePush() {
 
     const doit = () => {
       timerRef.current = null;
-      const paramsString = params.toString();
+      const paramsString = paramsRef.current.toString();
       const url = [
         locationRef.current.pathname,
         paramsString ? `?${paramsString}` : "",
@@ -110,10 +104,9 @@ export function useSearchParams() {
 
   const paramsRef = useRef();
   useMemo(() => {
-  paramsRef.current = new URLSearchParams(location.search);
+    paramsRef.current = new URLSearchParams(location.search);
   }, [location.search]);
 
-  const params = new URLSearchParams(location.search);
   const push = usePush();
 
   const cached = cache.filter((x) => x.location === location);
@@ -127,7 +120,7 @@ export function useSearchParams() {
       return useParams[name];
     }
 
-    const value = parseValue(params, name, defaultValue);
+    const value = parseValue(paramsRef.current, name, defaultValue);
     let setter = setters.find(({ name: setterName, defaultValue: setterDefaultValue }) => name === setterName && defaultValue === setterDefaultValue)?.setter;
     if(!setter) {
       setter = (newValue) => {
@@ -152,8 +145,8 @@ export function useSearchParams() {
   };
 
   const result = {
-    get: (paramName) => params.get(paramName),
-    entries: () => params.entries(),
+    get: (paramName) => paramsRef.current.get(paramName),
+    entries: () => paramsRef.current.entries(),
     push,
     param,
   };
