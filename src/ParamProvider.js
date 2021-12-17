@@ -25,6 +25,8 @@ const MINIMUM_DELAY_BETWEEN_TWO_HISTORY_PUSH_IN_MS = 300;
  */
 function useLocationNoThrow() {
   try{
+    // useLocation may throw inside MemoryRouter
+    // (We do not really care)
     return useLocation();
   }catch(e) {
     return {};
